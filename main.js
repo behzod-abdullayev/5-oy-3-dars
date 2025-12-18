@@ -16,8 +16,8 @@ db.createCollection("members");
 
 db.createCollection("admins");
 
-// register a'zolar uchun
 
+// register a'zolar uchun
 function register(username, name, age) {
   const existingUser = db.members.findOne({ username: username });
 
@@ -43,8 +43,8 @@ function register(username, name, age) {
   return "registered successfully";
 }
 
-// register kutubxonaga ishga joylashmoqchilar uchun
 
+// register kutubxonaga ishga joylashmoqchilar uchun
 function registeradmin(username, password) {
   const existingAdmin = db.admins.findOne({ username: username });
 
@@ -63,6 +63,7 @@ function registeradmin(username, password) {
   });
   return `admin registered successfully`;
 }
+
 
 // kitob qoshish
 function addOrUpdateBook(password, name, author, genre, publishDate, quantity) {
@@ -96,6 +97,7 @@ function addOrUpdateBook(password, name, author, genre, publishDate, quantity) {
   }
 }
 
+
 //kitob sotib olish
 function purchaseBook(username, bookTitle, quantity) {
   const user = db.members.findOne({ name: username });
@@ -126,3 +128,108 @@ function purchaseBook(username, bookTitle, quantity) {
   console.log("Purchase successful");
 }
 
+
+// most ordered
+function mostOrderedBookSimple() {
+  const orders = db.orders.find().toArray();
+
+  if (orders.length === 0) {
+    console.log("No orders yet");
+    return null;
+  }
+
+  const counts = {};
+
+  orders.forEach((order) => {
+    if (!counts[order.bookTitle]) {
+      counts[order.bookTitle] = 0;
+    }
+    counts[order.bookTitle] += order.quantity;
+  });
+
+  let mostOrdered = null;
+  let maxQuantity = 0;
+
+  for (const book in counts) {
+    if (counts[book] > maxQuantity) {
+      maxQuantity = counts[book];
+      mostOrdered = book;
+    }
+  }
+
+  console.log(`Most ordered book: ${mostOrdered} (${maxQuantity} copies)`);
+  return { bookTitle: mostOrdered, totalOrdered: maxQuantity };
+}
+
+
+// azolarni yosh bo'yicha guruhlash
+function membersGroupedByAge() {
+  const result = db.members
+    .aggregate([
+      {
+        $group: {
+          _id: "$age",
+          members: { $push: "$name" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ])
+    .toArray();
+
+  console.log(result);
+  return result;
+}
+
+
+//kitoblarni janr boyicha guruhlash
+function booksGroupedByGenre() {
+  const result = db.books
+    .aggregate([
+      {
+        $group: {
+          _id: "$genre",
+          books: { $push: "$name" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ])
+    .toArray();
+
+  console.log(result);
+  return result;
+}
+
+
+//jami a'zolar sonini ko'rsatadigan funksiya
+function totalMembers() {
+  const count = db.members.countDocuments();
+  console.log(`Total members: ${count}`);
+  return count;
+}
+
+
+// eng faol a'zo
+function mostActiveMember() {
+  const result = db.orders
+    .aggregate([
+      {
+        $group: {
+          _id: "$userName",
+          totalOrders: { $sum: "$quantity" },
+        },
+      },
+      { $sort: { totalOrders: -1 } },
+      { $limit: 1 },
+    ])
+    .toArray();
+
+  if (result.length > 0) {
+    console.log(
+      `Most active member: ${result[0]._id} (${result[0].totalOrders} books)`
+    );
+    return result[0];
+  } else {
+    console.log("No orders yet");
+    return null;
+  }
+}
