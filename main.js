@@ -208,20 +208,28 @@ function totalMembers() {
 function mostActiveMember() {
   const result = db.orders
     .aggregate([
-      { $group: { _id: "$username", totalOrders: { $sum: Number("$quantity") } } },
+      {
+        $group: {
+          _id: "$username",
+          totalOrders: { $sum: { $toInt: "$quantity" } } 
+        }
+      },
       { $sort: { totalOrders: -1 } },
       { $limit: 1 },
     ])
     .toArray();
 
   if (result.length > 0) {
-    console.log(`Most active member: ${result[0]._id} (${result[0].totalOrders} books)`);
+    console.log(
+      `Most active member: ${result[0]._id} (${result[0].totalOrders} books)`
+    );
     return result[0];
   } else {
     console.log("No orders yet");
     return null;
   }
 }
+
 
 
 
@@ -272,7 +280,7 @@ purchaseBook("Charlie", "Who Will Cry When You Die?", 2);
 
 purchaseBook("Diana", "The 7 Habits of Highly Effective People", 1);
 purchaseBook("Diana", "Atomic Habits", 2);
-purchaseBook("Diana", "Rich Dad Poor Dad", 1);
+purchaseBook("Diana", "Rich Dad Poor Dad", 4);
 
 purchaseBook("Edward", "Think and Grow Rich", 3);
 
