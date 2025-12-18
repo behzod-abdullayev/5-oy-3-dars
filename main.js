@@ -6,113 +6,123 @@ db.createCollection("members");
 
 db.createCollection("orders");
 
-db.books.insertMany([
-  {
-    name: "Do It Today: Overcome Procrastination, Improve Productivity, and Achieve More Meaningful Things",
-    authors: "Darius Foroux",
-    genre: "Productivity, Self-Help",
-    publication: "01.01.2019",
-    quantity: 145,
-  },
-  {
-    name: "Atomic Habits",
-    authors: "James Clear",
-    genre: "Self-Help, Personal Development",
-    publication: "16.10.2018",
-    quantity: 500,
-  },
-  {
-    name: "Think and Grow Rich",
-    authors: "Napoleon Hill",
-    genre: "Success, Personal Finance",
-    publication: "01.05.1937",
-    quantity: 400,
-  },
-  {
-    name: "The 7 Habits of Highly Effective People",
-    authors: "Stephen R. Covey",
-    genre: "Leadership, Self-Help",
-    publication: "15.08.1989",
-    quantity: 420,
-  },
-  {
-    name: "The Power of Now",
-    authors: "Eckhart Tolle",
-    genre: "Spirituality, Mindfulness",
-    publication: "01.01.1997",
-    quantity: 300,
-  },
-  {
-    name: "Who Will Cry When You Die?",
-    authors: "Robin Sharma",
-    genre: "Self-Help, Personal Growth",
-    publication: "09.10.1999",
-    quantity: 120,
-  },
-]);
+db.createCollection("register");
 
-db.members.insertMany([
-  { name: "Behzod", age: 24, memberSince: "April 2024" },
-  { name: "Aziz", age: 22, memberSince: "January 2023" },
-  { name: "Dilshod", age: 27, memberSince: "June 2022" },
-  { name: "Madina", age: 21, memberSince: "September 2024" },
-  { name: "Sardor", age: 30, memberSince: "March 2021" },
+db.createCollection("adminRegister");
 
-  { name: "Jasur", age: 26, memberSince: "February 2022" },
-  { name: "Umid", age: 28, memberSince: "July 2020" },
-  { name: "Akmal", age: 35, memberSince: "November 2019" },
-  { name: "Shohjahon", age: 23, memberSince: "August 2023" },
-  { name: "Farruh", age: 29, memberSince: "May 2021" },
+db.createCollection("orders");
 
-  { name: "Islom", age: 31, memberSince: "December 2020" },
-  { name: "Bobur", age: 25, memberSince: "October 2022" },
-  { name: "Sanjar", age: 27, memberSince: "June 2021" },
-  { name: "Shahzod", age: 34, memberSince: "April 2018" },
-  { name: "Rustam", age: 38, memberSince: "January 2017" },
+db.createCollection("members");
 
-  { name: "Kamron", age: 21, memberSince: "September 2024" },
-  { name: "Mirjalol", age: 24, memberSince: "March 2023" },
-  { name: "Oybek", age: 32, memberSince: "February 2020" },
-  { name: "Anvar", age: 36, memberSince: "May 2019" },
-  { name: "Bekzod", age: 28, memberSince: "July 2022" },
+db.createCollection("admins");
 
-  { name: "Nodir", age: 33, memberSince: "August 2021" },
-  { name: "Shukhrat", age: 40, memberSince: "June 2016" },
-  { name: "Zafar", age: 29, memberSince: "November 2022" },
-  { name: "Elyor", age: 22, memberSince: "January 2024" },
-  { name: "Javohir", age: 26, memberSince: "October 2021" },
-]);
+// register a'zolar uchun
 
-//purchasing
+function register(username, name, age) {
+  const existingUser = db.members.findOne({ username: username });
 
+  if (!username || !name || age === undefined) {
+    return "username, name and age required";
+  }
 
+  age = Number(age);
+  if (isNaN(age)) {
+    return `age must be a number`;
+  }
 
-function purchasing(name, bookTitle, quantity) {
-  const member = db.members.findOne({ name: name });
-  if (!member) {
-    console.log("You are not a member of our library");
-    return;
+  if (existingUser) {
+    return `The username ${username} already exists. Please choose a different username.`;
+  }
+
+  db.members.insertOne({
+    username: username,
+    name: name,
+    age: age,
+    memberSince: new Date(),
+  });
+  return "registered successfully";
+}
+
+// register kutubxonaga ishga joylashmoqchilar uchun
+
+function registeradmin(username, password) {
+  const existingAdmin = db.admins.findOne({ username: username });
+
+  if (!username || !password) {
+    return `username and password required`;
+  }
+
+  if (existingAdmin) {
+    return `the username ${username} already exist. please choose a different username`;
+  }
+
+  db.admins.insertOne({
+    username: username,
+    password: password,
+    sinceWorking: new Date(),
+  });
+  return `admin registered successfully`;
+}
+
+// kitob qoshish
+function addOrUpdateBook(password, name, author, genre, publishDate, quantity) {
+  if (!password) {
+    return "A password is required to add a book";
+  }
+
+  const admin = db.admins.findOne({ password: password });
+  if (!admin) {
+    return "You have a wrong password";
+  }
+
+  if (!name || !author || !genre || !publishDate || !quantity) {
+    return "name, author, genre, publishDate and quantity are required";
+  }
+
+  const inspection = db.books.findOne({ name: name });
+
+  if (inspection) {
+    db.books.updateOne({ name: name }, { $inc: { quantity: quantity } });
+    console.log("Book quantity updated successfully");
+  } else {
+    db.books.insertOne({
+      name: name,
+      author: author,
+      genre: genre,
+      publishDate: publishDate,
+      quantity: quantity,
+    });
+    console.log("Book added successfully");
+  }
+}
+
+//kitob sotib olish
+function purchaseBook(username, bookTitle, quantity) {
+  const user = db.members.findOne({ name: username });
+  if (!user) {
+    return console.log("You are not registered in the library");
   }
 
   const book = db.books.findOne({ name: bookTitle });
   if (!book) {
-    console.log(`We don't have a book named "${bookTitle}"`);
-    return;
+    return console.log(`Book "${bookTitle}" not found`);
   }
 
   if (book.quantity < quantity) {
-    console.log(`You can't purchase more than ${book.quantity}`);
-    return;
+    return console.log(
+      `Only ${book.quantity} copy(ies) available, cannot purchase ${quantity}`
+    );
   }
 
-  db.books.updateOne(
-    { name: bookTitle },
-    { $inc: { quantity: -quantity } }
-  );
+  db.books.updateOne({ name: bookTitle }, { $inc: { quantity: -quantity } });
+
+  db.orders.insertOne({
+    username: username,
+    bookTitle: bookTitle,
+    quantity: quantity,
+    orderDate: new Date(),
+  });
 
   console.log("Purchase successful");
 }
-
-
-
 
